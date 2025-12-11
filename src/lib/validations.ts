@@ -26,24 +26,30 @@ export const userRoleSchema = z.enum([
     "USER",
 ]);
 
-export const registerUserSchema = z.object({
+// Base schema without refine - can be extended
+const registerUserBaseSchema = z.object({
     name: z.string().min(3, "Nama minimal 3 karakter"),
     email: z.string().email("Format email tidak valid"),
     phone: z.string()
-        .regex(/^\+62[0-9]{9,12}$/, "Format: +62xxx (9-12 digit)")
+        .regex(/^(\+62|08)[0-9]{8,12}$/, "Format: +62xxx atau 08xxx")
         .optional(),
     password: z.string()
-        .min(8, "Password minimal 8 karakter")
-        .regex(/[A-Z]/, "Password harus mengandung huruf besar")
-        .regex(/[0-9]/, "Password harus mengandung angka"),
-    confirmPassword: z.string(),
+        .min(8, "Password minimal 8 karakter"),
+    confirmPassword: z.string().optional(),
     role: z.enum(["USER", "OWNER", "AGENT"]).default("USER"),
-}).refine((data) => data.password === data.confirmPassword, {
-    message: "Konfirmasi password tidak cocok",
-    path: ["confirmPassword"],
 });
 
-export const registerOwnerSchema = registerUserSchema.extend({
+// With refine for registration
+export const registerUserSchema = registerUserBaseSchema.refine(
+    (data) => !data.confirmPassword || data.password === data.confirmPassword,
+    {
+        message: "Konfirmasi password tidak cocok",
+        path: ["confirmPassword"],
+    }
+);
+
+// Owner extends base (not refined)
+export const registerOwnerSchema = registerUserBaseSchema.extend({
     role: z.literal("OWNER"),
     ktpNumber: z.string().length(16, "NIK harus 16 digit"),
     businessName: z.string().min(3, "Nama usaha minimal 3 karakter"),
@@ -52,8 +58,14 @@ export const registerOwnerSchema = registerUserSchema.extend({
     npwp: z.string().optional(),
 });
 
-export const registerAgentSchema = registerOwnerSchema.extend({
+// Agent extends base with additional fields
+export const registerAgentSchema = registerUserBaseSchema.extend({
     role: z.literal("AGENT"),
+    ktpNumber: z.string().length(16, "NIK harus 16 digit"),
+    businessName: z.string().min(3, "Nama usaha minimal 3 karakter"),
+    businessAddress: z.string().min(10, "Alamat usaha minimal 10 karakter"),
+    propertyType: z.enum(["KOS", "KONTRAKAN", "VILLA", "HOUSE", "LAND", "APARTMENT"]),
+    npwp: z.string().optional(),
     agentLicense: z.string().min(5, "Nomor lisensi wajib diisi"),
 });
 
