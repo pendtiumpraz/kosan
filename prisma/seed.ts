@@ -138,10 +138,13 @@ async function main() {
     // =========================================================================
     console.log("👥 Seeding users...");
 
-    const passwordHash = await bcrypt.hash("Password123", 12);
+    const seedPassword = process.env.SEED_PASSWORD || "Password123";
+    const passwordHash = await bcrypt.hash(seedPassword, 12);
 
     const users = [
-        // Super Admin
+        // ===================
+        // SUPER ADMIN
+        // ===================
         {
             email: "superadmin@kosanhub.com",
             name: "Super Admin",
@@ -154,24 +157,13 @@ async function main() {
             phoneVerifiedAt: new Date(),
             verifiedAt: new Date(),
         },
-        // Admin
+        // ===================
+        // PEMILIK PROPERTI (OWNER)
+        // ===================
         {
-            email: "admin@kosanhub.com",
-            name: "Admin Staff",
-            phone: "+6281234567891",
-            role: "ADMIN" as const,
-            verificationStatus: "VERIFIED" as const,
-            isActive: true,
-            trustScore: 90,
-            emailVerifiedAt: new Date(),
-            phoneVerifiedAt: new Date(),
-            verifiedAt: new Date(),
-        },
-        // Owner 1
-        {
-            email: "owner1@example.com",
+            email: "pemilik1@example.com",
             name: "Budi Santoso",
-            phone: "+6281234567892",
+            phone: "+6281234567891",
             role: "OWNER" as const,
             verificationStatus: "VERIFIED" as const,
             isActive: true,
@@ -183,11 +175,10 @@ async function main() {
             businessName: "Kos Melati Indah",
             businessAddress: "Jl. Melati No. 10, Bandung",
         },
-        // Owner 2
         {
-            email: "owner2@example.com",
+            email: "pemilik2@example.com",
             name: "Siti Rahayu",
-            phone: "+6281234567893",
+            phone: "+6281234567892",
             role: "OWNER" as const,
             verificationStatus: "VERIFIED" as const,
             isActive: true,
@@ -199,27 +190,35 @@ async function main() {
             businessName: "Villa Puncak Indah",
             businessAddress: "Jl. Puncak No. 88, Bogor",
         },
-        // Agent
+        // ===================
+        // PEMBELI / PENCARI KOS (USER)
+        // ===================
         {
-            email: "agent@example.com",
-            name: "Ahmad Rizky",
-            phone: "+6281234567894",
-            role: "AGENT" as const,
-            verificationStatus: "VERIFIED" as const,
+            email: "pembeli1@example.com",
+            name: "Andi Pratama",
+            phone: "+6281234567893",
+            role: "USER" as const,
+            verificationStatus: "PENDING" as const,
             isActive: true,
-            trustScore: 70,
+            trustScore: 10,
             emailVerifiedAt: new Date(),
-            phoneVerifiedAt: new Date(),
-            verifiedAt: new Date(),
-            ktpNumber: "3201234567890003",
-            agentLicense: "AREBI-2024-001",
-            businessName: "Rizky Property Agent",
-            businessAddress: "Jl. Agent No. 5, Jakarta",
         },
-        // Tenant 1
         {
-            email: "tenant1@example.com",
-            name: "Dewi Puspa",
+            email: "pembeli2@example.com",
+            name: "Dewi Lestari",
+            phone: "+6281234567894",
+            role: "USER" as const,
+            verificationStatus: "PENDING" as const,
+            isActive: true,
+            trustScore: 10,
+            emailVerifiedAt: new Date(),
+        },
+        // ===================
+        // PENGHUNI / TENANT (sudah jadi penyewa)
+        // ===================
+        {
+            email: "penghuni1@example.com",
+            name: "Rina Wulandari",
             phone: "+6281234567895",
             role: "TENANT" as const,
             verificationStatus: "VERIFIED" as const,
@@ -228,9 +227,8 @@ async function main() {
             emailVerifiedAt: new Date(),
             phoneVerifiedAt: new Date(),
         },
-        // Tenant 2
         {
-            email: "tenant2@example.com",
+            email: "penghuni2@example.com",
             name: "Rudi Hermawan",
             phone: "+6281234567896",
             role: "TENANT" as const,
@@ -239,17 +237,6 @@ async function main() {
             trustScore: 55,
             emailVerifiedAt: new Date(),
             phoneVerifiedAt: new Date(),
-        },
-        // User (belum tentukan role)
-        {
-            email: "user@example.com",
-            name: "Andi Pratama",
-            phone: "+6281234567897",
-            role: "USER" as const,
-            verificationStatus: "PENDING" as const,
-            isActive: true,
-            trustScore: 5,
-            emailVerifiedAt: new Date(),
         },
     ];
 
@@ -270,8 +257,8 @@ async function main() {
     // =========================================================================
     console.log("🏠 Seeding properties...");
 
-    const owner1Id = createdUsers["owner1@example.com"];
-    const owner2Id = createdUsers["owner2@example.com"];
+    const owner1Id = createdUsers["pemilik1@example.com"];
+    const owner2Id = createdUsers["pemilik2@example.com"];
 
     const properties = [
         {
@@ -421,8 +408,8 @@ async function main() {
     // =========================================================================
     console.log("👤 Seeding residents...");
 
-    const tenant1Id = createdUsers["tenant1@example.com"];
-    const tenant2Id = createdUsers["tenant2@example.com"];
+    const tenant1Id = createdUsers["penghuni1@example.com"];
+    const tenant2Id = createdUsers["penghuni2@example.com"];
 
     const existingResidents = await prisma.resident.count({ where: { propertyId: kosId } });
 
@@ -432,10 +419,10 @@ async function main() {
                 propertyId: kosId,
                 roomId: createdRooms["Kamar 101"],
                 userId: tenant1Id,
-                fullName: "Dewi Puspa",
+                fullName: "Rina Wulandari",
                 ktpNumber: "3201234567890010",
                 phone: "+6281234567895",
-                email: "tenant1@example.com",
+                email: "penghuni1@example.com",
                 dateOfBirth: new Date("1998-05-15"),
                 gender: "FEMALE" as const,
                 occupation: "Mahasiswa",
@@ -448,29 +435,12 @@ async function main() {
             },
             {
                 propertyId: kosId,
-                roomId: createdRooms["Kamar 102"],
-                fullName: "Rina Wulandari",
-                ktpNumber: "3201234567890011",
-                phone: "+6281234567898",
-                email: "rina@example.com",
-                dateOfBirth: new Date("1999-08-20"),
-                gender: "FEMALE" as const,
-                occupation: "Karyawan Swasta",
-                checkInDate: new Date("2024-02-15"),
-                rentalPrice: 1200000,
-                depositAmount: 500000,
-                depositStatus: "PAID" as const,
-                paymentDueDay: 15,
-                rentalStatus: "ACTIVE" as const,
-            },
-            {
-                propertyId: kosId,
                 roomId: createdRooms["Kamar 201"],
                 userId: tenant2Id,
                 fullName: "Rudi Hermawan",
-                ktpNumber: "3201234567890012",
+                ktpNumber: "3201234567890011",
                 phone: "+6281234567896",
-                email: "tenant2@example.com",
+                email: "penghuni2@example.com",
                 dateOfBirth: new Date("1997-03-10"),
                 gender: "MALE" as const,
                 occupation: "Freelancer",
@@ -596,10 +566,14 @@ async function main() {
     // DONE
     // =========================================================================
     console.log("🎉 Seeding selesai!\n");
-    console.log("🔐 Login credentials:");
-    console.log("   Email: superadmin@kosanhub.com | Password: Password123");
-    console.log("   Email: owner1@example.com      | Password: Password123");
-    console.log("   Email: tenant1@example.com     | Password: Password123");
+    console.log("🔐 Login credentials (Password: set via SEED_PASSWORD env or default):");
+    console.log("   SUPER ADMIN : superadmin@kosanhub.com");
+    console.log("   PEMILIK 1   : pemilik1@example.com");
+    console.log("   PEMILIK 2   : pemilik2@example.com");
+    console.log("   PEMBELI 1   : pembeli1@example.com");
+    console.log("   PEMBELI 2   : pembeli2@example.com");
+    console.log("   PENGHUNI 1  : penghuni1@example.com");
+    console.log("   PENGHUNI 2  : penghuni2@example.com");
 }
 
 main()
