@@ -7,6 +7,18 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const prismaClientSingleton = () => {
+  // Check if we have Accelerate URL (for production/Vercel)
+  const accelerateUrl = process.env.PRISMA_DATABASE_URL;
+  
+  if (accelerateUrl) {
+    // Use Prisma Accelerate for serverless
+    return new PrismaClient({
+      accelerateUrl,
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    });
+  }
+  
+  // Use direct PostgreSQL connection with pg adapter for local development
   const connectionString = process.env.DATABASE_URL!;
   const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);

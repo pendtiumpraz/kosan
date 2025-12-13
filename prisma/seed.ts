@@ -1,13 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
 import bcrypt from "bcryptjs";
 import "dotenv/config";
 
-// Prisma 7 with PostgreSQL adapter
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+// Use DATABASE_URL from environment for seeding
+const prisma = new PrismaClient();
 
 async function main() {
     console.log("🌱 Memulai seeding database...\n");
