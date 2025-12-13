@@ -7,9 +7,8 @@ import { useRouter } from "next/navigation";
 import { Home, Mail, Lock, Eye, EyeOff, User, Phone, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 
 const roles = [
-    { value: "USER", label: "Pencari Properti", desc: "Cari kos, kontrakan, rumah" },
-    { value: "OWNER", label: "Pemilik Properti", desc: "Kelola properti Anda" },
-    { value: "AGENT", label: "Agen Properti", desc: "Jual/sewakan properti klien" },
+    { value: "USER", label: "Pencari Kos / Pembeli", desc: "Cari kos, kontrakan, atau beli properti", icon: "🔍" },
+    { value: "OWNER", label: "Pemilik Properti", desc: "Kelola dan sewakan properti Anda", icon: "🏠" },
 ];
 
 export default function RegisterPage() {
@@ -22,6 +21,9 @@ export default function RegisterPage() {
         password: "",
         confirmPassword: "",
         role: "USER",
+        // Owner fields
+        businessName: "",
+        businessAddress: "",
     });
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
@@ -57,6 +59,17 @@ export default function RegisterPage() {
             setError("Password tidak cocok");
             return false;
         }
+        // Validate owner fields
+        if (formData.role === "OWNER") {
+            if (!formData.businessName.trim()) {
+                setError("Nama usaha/properti wajib diisi");
+                return false;
+            }
+            if (!formData.businessAddress.trim() || formData.businessAddress.length < 10) {
+                setError("Alamat properti minimal 10 karakter");
+                return false;
+            }
+        }
         return true;
     };
 
@@ -74,16 +87,24 @@ export default function RegisterPage() {
         setError("");
 
         try {
+            const payload: Record<string, string> = {
+                name: formData.name,
+                email: formData.email,
+                phone: formData.phone,
+                password: formData.password,
+                role: formData.role,
+            };
+
+            // Add owner fields
+            if (formData.role === "OWNER") {
+                payload.businessName = formData.businessName;
+                payload.businessAddress = formData.businessAddress;
+            }
+
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: formData.name,
-                    email: formData.email,
-                    phone: formData.phone,
-                    password: formData.password,
-                    role: formData.role,
-                }),
+                body: JSON.stringify(payload),
             });
 
             const data = await res.json();
@@ -281,6 +302,40 @@ export default function RegisterPage() {
                                         />
                                     </div>
                                 </div>
+
+                                {/* Owner Additional Fields */}
+                                {formData.role === "OWNER" && (
+                                    <>
+                                        <div className="pt-4 border-t border-slate-200">
+                                            <p className="text-sm font-medium text-slate-700 mb-4">Informasi Properti</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Nama Usaha / Properti</label>
+                                            <input
+                                                type="text"
+                                                value={formData.businessName}
+                                                onChange={(e) => handleChange("businessName", e.target.value)}
+                                                placeholder="Contoh: Kos Melati Indah"
+                                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Alamat Properti</label>
+                                            <textarea
+                                                value={formData.businessAddress}
+                                                onChange={(e) => handleChange("businessAddress", e.target.value)}
+                                                placeholder="Alamat lengkap properti Anda"
+                                                rows={2}
+                                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                            />
+                                        </div>
+                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                            <p className="text-sm text-amber-800">
+                                                ⚠️ Akun pemilik properti akan direview oleh admin dalam 1-3 hari kerja sebelum dapat digunakan.
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
                             </>
                         )}
 
