@@ -6,7 +6,6 @@ import {
     errorResponse,
     ErrorCodes,
     withErrorHandler,
-    parseBody,
 } from "@/lib/api-utils";
 import {
     registerUserSchema,
@@ -25,12 +24,20 @@ export const POST = withErrorHandler(async (request: Request) => {
     // Determine which schema to use based on role
     let data: RegisterUserInput;
 
-    if (body.role === "AGENT") {
-        data = await parseBody(request, registerAgentSchema);
-    } else if (body.role === "OWNER") {
-        data = registerOwnerSchema.parse(body);
-    } else {
-        data = registerUserSchema.parse(body);
+    try {
+        if (body.role === "AGENT") {
+            data = registerAgentSchema.parse(body);
+        } else if (body.role === "OWNER") {
+            data = registerOwnerSchema.parse(body);
+        } else {
+            data = registerUserSchema.parse(body);
+        }
+    } catch (error: any) {
+        return errorResponse(
+            ErrorCodes.VALIDATION_ERROR,
+            error.errors?.[0]?.message || "Data tidak valid",
+            400
+        );
     }
 
     // Check if email already exists
@@ -135,15 +142,17 @@ export const POST = withErrorHandler(async (request: Request) => {
         });
 
         // Create notification for each admin
-        await prisma.notification.createMany({
-            data: admins.map((admin) => ({
-                userId: admin.id,
-                type: "VERIFICATION_REQUEST",
-                title: `Registrasi ${data.role} Baru`,
-                content: `${user.name} mendaftar sebagai ${data.role}. Mohon review dan verifikasi.`,
-                data: { userId: user.id, role: data.role },
-            })),
-        });
+        if (admins.length > 0) {
+            await prisma.notification.createMany({
+                data: admins.map((admin) => ({
+                    userId: admin.id,
+                    type: "VERIFICATION_REQUEST",
+                    title: `Registrasi ${data.role} Baru`,
+                    content: `${user.name} mendaftar sebagai ${data.role}. Mohon review dan verifikasi.`,
+                    data: { userId: user.id, role: data.role },
+                })),
+            });
+        }
     }
 
     const message =
