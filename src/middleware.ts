@@ -1,29 +1,27 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     
-    // Get token from cookie (Edge-compatible)
-    const token = await getToken({ 
-        req: request, 
-        secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET 
-    });
+    // Check for session cookie (Edge-compatible - just check existence)
+    const hasSession = request.cookies.has("authjs.session-token") 
+        || request.cookies.has("next-auth.session-token")
+        || request.cookies.has("__Secure-authjs.session-token")
+        || request.cookies.has("__Secure-next-auth.session-token");
     
-    const isLoggedIn = !!token;
     const isProtectedRoute = pathname.startsWith("/dashboard");
     const isAuthRoute = pathname === "/login" || pathname === "/register";
 
     // Redirect unauthenticated users from protected routes
-    if (isProtectedRoute && !isLoggedIn) {
+    if (isProtectedRoute && !hasSession) {
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
     }
 
     // Redirect authenticated users from auth routes
-    if (isAuthRoute && isLoggedIn) {
+    if (isAuthRoute && hasSession) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
