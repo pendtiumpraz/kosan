@@ -1,15 +1,24 @@
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    // TODO: Get user from session
+    // Get session from NextAuth
+    const session = await auth();
+
+    // Redirect to login if not authenticated
+    if (!session?.user) {
+        redirect("/login");
+    }
+
     const user = {
-        name: "Demo User",
-        role: "OWNER" as const,
-        avatar: undefined,
+        name: session.user.name || "User",
+        role: session.user.role,
+        avatar: session.user.avatar,
     };
 
     return (

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SearchBar } from "@/components/public/SearchBar";
 import { PropertyCard } from "@/components/public/PropertyCard";
+import { prisma } from "@/lib/prisma";
 import {
     Shield,
     Zap,
@@ -15,69 +16,49 @@ import {
     CheckCircle
 } from "lucide-react";
 
-// Featured listings data (will be fetched from API later)
-const featuredListings = [
-    {
-        id: "1",
-        title: "Kos Putri Melati - Dekat ITB",
-        propertyType: "KOS",
-        listingType: "RENT" as const,
-        price: 1800000,
-        pricePeriod: "MONTHLY",
-        city: "Bandung",
-        district: "Coblong",
-        bedrooms: 1,
-        bathrooms: 1,
-        buildingArea: 16,
-        imageUrl: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
-        isVerified: true,
-        isFeatured: true,
-    },
-    {
-        id: "2",
-        title: "Villa Puncak Indah - View Pegunungan",
-        propertyType: "VILLA",
-        listingType: "RENT" as const,
-        price: 3500000,
-        pricePeriod: "DAILY",
-        city: "Bogor",
-        district: "Cisarua",
-        bedrooms: 5,
-        bathrooms: 4,
-        buildingArea: 350,
-        imageUrl: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800",
-        isVerified: true,
-    },
-    {
-        id: "3",
-        title: "Rumah Klasik Menteng - Premium Location",
-        propertyType: "HOUSE",
-        listingType: "SALE" as const,
-        price: 25000000000,
-        city: "Jakarta Pusat",
-        district: "Menteng",
-        bedrooms: 6,
-        bathrooms: 4,
-        buildingArea: 300,
-        imageUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800",
-        isVerified: true,
-    },
-    {
-        id: "4",
-        title: "Kontrakan Nyaman untuk Keluarga",
-        propertyType: "KONTRAKAN",
-        listingType: "RENT" as const,
-        price: 2500000,
-        pricePeriod: "MONTHLY",
-        city: "Bandung",
-        district: "Sukajadi",
-        bedrooms: 3,
-        bathrooms: 2,
-        buildingArea: 90,
-        imageUrl: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800",
-        isVerified: true,
-    },
-];
+// Fetch featured listings from database
+async function getFeaturedListings() {
+    const listings = await prisma.listing.findMany({
+        where: {
+            deletedAt: null,
+            status: "ACTIVE",
+        },
+        orderBy: { views: "desc" },
+        take: 4,
+        include: {
+            images: { where: { isPrimary: true, deletedAt: null }, take: 1 },
+        },
+    });
+
+    return listings.map((listing) => ({
+        id: listing.id,
+        title: listing.title,
+        propertyType: listing.propertyType,
+        listingType: listing.listingType as "RENT" | "SALE",
+        price: Number(listing.price),
+        pricePeriod: listing.pricePeriod || undefined,
+        city: listing.city,
+        district: listing.district || undefined,
+        bedrooms: listing.bedrooms || undefined,
+        bathrooms: listing.bathrooms || undefined,
+        buildingArea: listing.buildingArea || undefined,
+        imageUrl: listing.images[0]?.imageUrl || undefined,
+        isVerified: listing.isVerified,
+    }));
+}
+
+// Get counts for stats
+async function getStats() {
+    const [listingCount, userCount] = await Promise.all([
+        prisma.listing.count({ where: { deletedAt: null, status: "ACTIVE" } }),
+        prisma.user.count({ where: { deletedAt: null, isActive: true } }),
+    ]);
+
+    return {
+        listings: listingCount,
+        users: userCount,
+    };
+}
 
 const features = [
     {
@@ -100,13 +81,6 @@ const features = [
         title: "Chat Langsung",
         description: "Komunikasi langsung dengan pemilik properti tanpa perantara.",
     },
-];
-
-const stats = [
-    { value: "10K+", label: "Properti Aktif" },
-    { value: "50K+", label: "Pengguna" },
-    { value: "100+", label: "Kota" },
-    { value: "99%", label: "Kepuasan" },
 ];
 
 const testimonials = [
@@ -133,7 +107,18 @@ const testimonials = [
     },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+    const [featuredListings, dbStats] = await Promise.all([
+        getFeaturedListings(),
+        getStats(),
+    ]);
+
+    const stats = [
+        { value: dbStats.listings > 0 ? `${dbStats.listings}+` : "10K+", label: "Properti Aktif" },
+        { value: dbStats.users > 0 ? `${dbStats.users}+` : "50K+", label: "Pengguna" },
+        { value: "100+", label: "Kota" },
+        { value: "99%", label: "Kepuasan" },
+    ];
     return (
         <div>
             {/* Hero Section */}
